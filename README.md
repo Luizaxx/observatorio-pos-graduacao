@@ -29,6 +29,10 @@ observatorio-pos-graduacao/
 ├── dags/
 │   ├── ingest_capes_programas.py   # DAG de ingestão
 │   └── capes_utils.py              # funções puras (testadas)
+├── dbt/
+│   ├── models/staging/             # bronze → prata
+│   ├── models/marts/               # prata → ouro
+│   └── profiles.yml                # conexão via variáveis de ambiente
 ├── sql/init/                       # cria banco do Airflow e schemas bronze/prata/ouro
 ├── tests/                          # testes com pytest
 ├── docker-compose.yml
@@ -55,6 +59,21 @@ docker compose up -d
 docker compose exec postgres psql -U obs -d observatorio \
   -c "SELECT _arquivo_origem, COUNT(*) FROM bronze.capes_programas GROUP BY 1;"
 ```
+
+## Transformação com dbt
+
+O projeto dbt fica em `dbt/` e lê a tabela `bronze.capes_programas`. Para rodar no host, com o compose no ar:
+
+```bash
+python3.13 -m venv .venv
+.venv/bin/pip install -r dbt/requirements.txt
+cd dbt
+../.venv/bin/dbt deps --profiles-dir .
+../.venv/bin/dbt debug --profiles-dir .
+../.venv/bin/dbt source freshness --profiles-dir .
+```
+
+A conexão usa `localhost:5434` e o usuário do `.env` por padrão. Dá para trocar com `DBT_HOST`, `DBT_PORT`, `POSTGRES_USER` e `POSTGRES_PASSWORD`.
 
 ## Testes
 

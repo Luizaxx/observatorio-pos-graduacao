@@ -1,0 +1,50 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: Dados brutos carregados pela DAG ingest_capes_programas. Todas as colunas são texto.
+    schema: bronze
+    tables:
+      - name: capes_programas
+        description: >
+          Programas de pós-graduação stricto sensu da Coleta Sucupira (CAPES).
+          Uma linha por programa por ano-base, um arquivo CSV por ano.
+        config:
+          loaded_at_field: _carregado_em
+          freshness:
+            warn_after: {count: 45, period: day}
+        columns:
+          - name: an_base
+            description: Ano-base da coleta.
+          - name: cd_programa_ies
+            description: Código do programa na CAPES. Junto com an_base identifica a linha.
+          - name: nm_programa_ies
+            description: Nome do programa.
+          - name: sg_entidade_ensino
+            description: Sigla da instituição de ensino.
+          - name: nm_entidade_ensino
+            description: Nome da instituição de ensino.
+          - name: ds_dependencia_administrativa
+            description: Pública ou privada.
+          - name: nm_regiao
+            description: Região do programa.
+          - name: sg_uf_programa
+            description: UF do programa.
+          - name: nm_municipio_programa_ies
+            description: Município do programa.
+          - name: nm_grande_area_conhecimento
+            description: "Grande área do conhecimento (ex.: Ciências Humanas)."
+          - name: nm_area_avaliacao
+            description: Área de avaliação da CAPES.
+          - name: nm_modalidade_programa
+            description: Acadêmico ou profissional.
+          - name: nm_grau_programa
+            description: Graus oferecidos (mestrado, doutorado ou ambos).
+          - name: cd_conceito_programa
+            description: Nota da avaliação CAPES (1 a 7). Pode vir com valores não numéricos.
+          - name: ds_situacao_programa
+            description: Situação do programa no ano-base (em funcionamento, desativado etc.).
+          - name: _arquivo_origem
+            description: Nome do CSV de onde a linha veio.
+          - name: _carregado_em
+            description: Momento da carga na bronze.
