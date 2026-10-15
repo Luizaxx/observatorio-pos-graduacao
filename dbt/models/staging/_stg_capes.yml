@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: stg_capes__programas
+    description: >
+      Programas de pós-graduação limpos e tipados. Uma linha por programa por
+      ano-base. Os textos de categoria seguem a grafia da CAPES (maiúsculas).
+    columns:
+      - name: codigo_programa
+        description: Código do programa na CAPES.
+      - name: ano_base
+        description: Ano-base da coleta Sucupira.
+      - name: nome_programa
+        description: Nome do programa.
+      - name: nome_programa_ingles
+        description: Nome do programa em inglês, quando informado.
+      - name: modalidade
+        description: ACADÊMICO ou PROFISSIONAL.
+      - name: grau
+        description: Cursos oferecidos (ex. MESTRADO/DOUTORADO).
+      - name: conceito
+        description: Nota da avaliação CAPES, de 1 a 7. Nulo para cursos novos sem avaliação.
+      - name: sem_avaliacao
+        description: Verdadeiro quando a CAPES informa conceito "A" (curso novo aprovado, ainda sem nota).
+      - name: situacao
+        description: EM FUNCIONAMENTO ou EM DESATIVACAO.
+      - name: data_situacao
+        description: Data da última mudança de situação.
+      - name: ano_inicio_programa
+        description: Ano de início do programa.
+      - name: anos_inicio_cursos
+        description: >
+          Anos de início de cada curso como vêm da fonte (ex. 2014/2019). Mantido em
+          texto porque a ordem mestrado/doutorado não é consistente em todos os registros.
+      - name: em_rede
+        description: Programa oferecido em rede por mais de uma instituição.
+      - name: sigla_ies_rede
+        description: Sigla da instituição líder da rede, quando houver.
+      - name: grande_area
+        description: Grande área do conhecimento.
+      - name: area_conhecimento
+        description: Área do conhecimento.
+      - name: area_basica
+        description: Área básica.
+      - name: subarea_conhecimento
+        description: Subárea do conhecimento.
+      - name: especialidade
+        description: Especialidade.
+      - name: codigo_area_avaliacao
+        description: Código da área de avaliação da CAPES.
+      - name: area_avaliacao
+        description: Área de avaliação da CAPES.
+      - name: codigo_ies_capes
+        description: Código da instituição na CAPES.
+      - name: codigo_ies_emec
+        description: Código da instituição no e-MEC.
+      - name: sigla_ies
+        description: Sigla da instituição.
+      - name: nome_ies
+        description: Nome da instituição.
+      - name: status_juridico
+        description: FEDERAL, ESTADUAL, MUNICIPAL ou PARTICULAR.
+      - name: dependencia_administrativa
+        description: PÚBLICA ou PRIVADA.
+      - name: organizacao_academica
+        description: Tipo de instituição (universidade, centro universitário etc.).
+      - name: regiao
+        description: Região do país.
+      - name: uf
+        description: Sigla da UF.
+      - name: municipio
+        description: Município do programa.
+      - name: arquivo_origem
+        description: CSV de onde a linha veio.
+      - name: carregado_em
+        description: Momento da carga na bronze.
