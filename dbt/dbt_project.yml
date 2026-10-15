@@ -1,0 +1,23 @@
+name: observatorio
+version: "1.0.0"
+config-version: 2
+
+profile: observatorio
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+# staging lê da bronze e grava na prata; marts gera as tabelas finais na ouro
+models:
+  observatorio:
+    staging:
+      +schema: prata
+      +materialized: view
+    marts:
+      +schema: ouro
+      +materialized: table

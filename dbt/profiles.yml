@@ -1,0 +1,14 @@
+# Por padrão conecta no Postgres do docker compose exposto no host (porta 5434).
+# Dentro da rede do compose, use DBT_HOST=postgres e DBT_PORT=5432.
+observatorio:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      port: "{{ env_var('DBT_PORT', '5434') | int }}"
+      user: "{{ env_var('POSTGRES_USER', 'obs') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'obs') }}"
+      dbname: observatorio
+      schema: public
+      threads: 4
