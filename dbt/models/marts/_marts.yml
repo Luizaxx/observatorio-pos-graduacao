@@ -1,0 +1,79 @@
+version: 2
+
+models:
+  - name: dim_programas
+    description: >
+      Um registro por programa, com os atributos da coleta mais recente em que ele
+      aparece e um resumo do histórico na base.
+    columns:
+      - name: codigo_programa
+        description: Código do programa na CAPES.
+      - name: primeiro_ano_base
+        description: Primeiro ano-base em que o programa aparece.
+      - name: ultimo_ano_base
+        description: Último ano-base em que o programa aparece. Os demais atributos vêm desse ano.
+      - name: anos_na_base
+        description: Quantidade de anos-base em que o programa aparece.
+      - name: presente_na_ultima_coleta
+        description: Verdadeiro se o programa está na coleta mais recente carregada.
+
+  - name: fct_programas_por_uf_ano
+    description: Indicadores de programas por UF e ano-base.
+    columns:
+      - name: ano_base
+        description: Ano-base da coleta.
+      - name: regiao
+        description: Região da UF.
+      - name: uf
+        description: Sigla da UF.
+      - name: total_programas
+        description: "{{ doc('total_programas') }}"
+      - name: programas_em_funcionamento
+        description: "{{ doc('programas_em_funcionamento') }}"
+      - name: programas_academicos
+        description: "{{ doc('programas_academicos') }}"
+      - name: programas_profissionais
+        description: "{{ doc('programas_profissionais') }}"
+      - name: programas_com_doutorado
+        description: "{{ doc('programas_com_doutorado') }}"
+      - name: programas_avaliados
+        description: "{{ doc('programas_avaliados') }}"
+      - name: conceito_medio
+        description: "{{ doc('conceito_medio') }}"
+      - name: programas_nota_6_7
+        description: "{{ doc('programas_nota_6_7') }}"
+      - name: pct_nota_6_7
+        description: "{{ doc('pct_nota_6_7') }}"
+
+  - name: fct_programas_por_area_ano
+    description: >
+      Indicadores de programas por grande área, área de avaliação e ano-base.
+      A área de avaliação usa o nome mais recente, já que algumas foram renomeadas
+      ao longo dos anos (ex. Ciência da Computação para Computação).
+    columns:
+      - name: ano_base
+        description: Ano-base da coleta.
+      - name: grande_area
+        description: Grande área do conhecimento do programa.
+      - name: codigo_area_avaliacao
+        description: Código da área de avaliação da CAPES.
+      - name: area_avaliacao
+        description: Nome mais recente da área de avaliação.
+      - name: total_programas
+        description: "{{ doc('total_programas') }}"
+      - name: programas_em_funcionamento
+        description: "{{ doc('programas_em_funcionamento') }}"
+      - name: programas_academicos
+        description: "{{ doc('programas_academicos') }}"
+      - name: programas_profissionais
+        description: "{{ doc('programas_profissionais') }}"
+      - name: programas_com_doutorado
+        description: "{{ doc('programas_com_doutorado') }}"
+      - name: programas_avaliados
+        description: "{{ doc('programas_avaliados') }}"
+      - name: conceito_medio
+        description: "{{ doc('conceito_medio') }}"
+      - name: programas_nota_6_7
+        description: "{{ doc('programas_nota_6_7') }}"
+      - name: pct_nota_6_7
+        description: "{{ doc('pct_nota_6_7') }}"
