@@ -1,5 +1,6 @@
 x-airflow-common: &airflow-common
-  image: apache/airflow:2.10.5-python3.11
+  build: .
+  image: observatorio-airflow:2.10.5
   env_file: .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -8,11 +9,13 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DEFAULT_TIMEZONE: America/Sao_Paulo
     AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: America/Sao_Paulo
     WAREHOUSE_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/observatorio
-    _PIP_ADDITIONAL_REQUIREMENTS: ${PIP_ADDITIONAL_REQUIREMENTS:-}
+    DBT_HOST: postgres
+    DBT_PORT: "5432"
   volumes:
     - ./dags:/opt/airflow/dags
     - ./data:/opt/airflow/data
     - ./logs:/opt/airflow/logs
+    - ./dbt:/opt/airflow/dbt
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     postgres:
