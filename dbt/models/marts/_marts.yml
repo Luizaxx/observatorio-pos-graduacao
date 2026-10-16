@@ -8,6 +8,9 @@ models:
     columns:
       - name: codigo_programa
         description: Código do programa na CAPES.
+        data_tests:
+          - unique
+          - not_null
       - name: primeiro_ano_base
         description: Primeiro ano-base em que o programa aparece.
       - name: ultimo_ano_base
@@ -19,6 +22,10 @@ models:
 
   - name: fct_programas_por_uf_ano
     description: Indicadores de programas por UF e ano-base.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [ano_base, uf]
     columns:
       - name: ano_base
         description: Ano-base da coleta.
@@ -40,16 +47,30 @@ models:
         description: "{{ doc('programas_avaliados') }}"
       - name: conceito_medio
         description: "{{ doc('conceito_medio') }}"
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 7
       - name: programas_nota_6_7
         description: "{{ doc('programas_nota_6_7') }}"
       - name: pct_nota_6_7
         description: "{{ doc('pct_nota_6_7') }}"
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
 
   - name: fct_programas_por_area_ano
     description: >
       Indicadores de programas por grande área, área de avaliação e ano-base.
       A área de avaliação usa o nome mais recente, já que algumas foram renomeadas
       ao longo dos anos (ex. Ciência da Computação para Computação).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [ano_base, grande_area, codigo_area_avaliacao]
     columns:
       - name: ano_base
         description: Ano-base da coleta.
@@ -73,7 +94,17 @@ models:
         description: "{{ doc('programas_avaliados') }}"
       - name: conceito_medio
         description: "{{ doc('conceito_medio') }}"
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 7
       - name: programas_nota_6_7
         description: "{{ doc('programas_nota_6_7') }}"
       - name: pct_nota_6_7
         description: "{{ doc('pct_nota_6_7') }}"
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
