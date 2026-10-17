@@ -12,12 +12,14 @@ clean-targets:
   - target
   - dbt_packages
 
-# staging lê da bronze e grava na prata; marts gera as tabelas finais na ouro
+# staging lê da bronze e grava na prata; marts gera as tabelas finais na ouro.
+# A prata é tabela (e não view) porque a ingestão recria a bronze a cada carga,
+# e o Postgres não deixa dropar uma tabela com views dependentes.
 models:
   observatorio:
     staging:
       +schema: prata
-      +materialized: view
+      +materialized: table
     marts:
       +schema: ouro
       +materialized: table

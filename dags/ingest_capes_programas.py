@@ -4,6 +4,8 @@ DAG de ingestão: Programas da Pós-Graduação Stricto Sensu (CAPES / Plataform
 Fluxo:
     descobrir_recursos  ->  baixar_csv (mapeada, 1 task por arquivo)  ->  carregar_bronze  ->  validar_bronze
 
+Ao final, validar_bronze atualiza o Dataset da bronze, o que dispara a DAG transform_dbt.
+
 - Os arquivos são descobertos via API CKAN do portal de dados abertos da CAPES,
   então novos anos publicados entram no pipeline sem mudar código.
 - A camada bronze guarda os dados brutos (todas as colunas como texto) + metadados de carga.
@@ -21,6 +23,7 @@ import requests
 from airflow.decorators import dag, task
 
 from capes_utils import filtrar_csvs, ler_csv, normalizar_coluna
+from datasets import BRONZE_CAPES_PROGRAMAS
 
 log = logging.getLogger(__name__)
 
@@ -110,7 +113,8 @@ def ingest_capes_programas():
         log.info("Carregadas %d linhas em %s.%s", total, BRONZE_SCHEMA, BRONZE_TABLE)
         return total
 
-    @task
+    # ao terminar com sucesso, atualiza o Dataset e dispara a DAG transform_dbt
+    @task(outlets=[BRONZE_CAPES_PROGRAMAS])
     def validar_bronze(linhas_carregadas: int) -> None:
         from sqlalchemy import create_engine, text
 
