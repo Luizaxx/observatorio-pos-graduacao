@@ -1,0 +1,14 @@
+[theme]
+primaryColor = "#2a78d6"
+
+[browser]
+gatherUsageStats = false
+
+# No Docker para Mac os eventos de arquivo nem sempre chegam no container;
+# polling garante que o painel recarregue ao salvar.
+[server]
+fileWatcherType = "poll"
+runOnSave = true
+
+[client]
+toolbarMode = "viewer"
