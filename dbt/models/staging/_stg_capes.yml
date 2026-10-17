@@ -5,27 +5,61 @@ models:
     description: >
       Programas de pós-graduação limpos e tipados. Uma linha por programa por
       ano-base. Os textos de categoria seguem a grafia da CAPES (maiúsculas).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [codigo_programa, ano_base]
+      # conceito nulo só pode acontecer nos cursos sem avaliação
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "(conceito is null) = sem_avaliacao"
     columns:
       - name: codigo_programa
         description: Código do programa na CAPES.
+        data_tests:
+          - not_null
       - name: ano_base
         description: Ano-base da coleta Sucupira.
+        data_tests:
+          - not_null
       - name: nome_programa
         description: Nome do programa.
       - name: nome_programa_ingles
         description: Nome do programa em inglês, quando informado.
       - name: modalidade
         description: ACADÊMICO ou PROFISSIONAL.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["ACADÊMICO", "PROFISSIONAL"]
       - name: grau
         description: Cursos oferecidos (ex. MESTRADO/DOUTORADO).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["MESTRADO", "DOUTORADO", "MESTRADO/DOUTORADO", "MESTRADO PROFISSIONAL", "DOUTORADO PROFISSIONAL", "MESTRADO PROFISSIONAL/DOUTORADO PROFISSIONAL"]
       - name: conceito
         description: Nota da avaliação CAPES, de 1 a 7. Nulo para cursos novos sem avaliação.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 7
       - name: sem_avaliacao
         description: Verdadeiro quando a CAPES informa conceito "A" (curso novo aprovado, ainda sem nota).
       - name: situacao
         description: EM FUNCIONAMENTO ou EM DESATIVACAO.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["EM FUNCIONAMENTO", "EM DESATIVACAO"]
       - name: data_situacao
         description: Data da última mudança de situação.
+        data_tests:
+          - not_null
       - name: ano_inicio_programa
         description: Ano de início do programa.
       - name: anos_inicio_cursos
@@ -62,12 +96,26 @@ models:
         description: FEDERAL, ESTADUAL, MUNICIPAL ou PARTICULAR.
       - name: dependencia_administrativa
         description: PÚBLICA ou PRIVADA.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["PÚBLICA", "PRIVADA"]
       - name: organizacao_academica
         description: Tipo de instituição (universidade, centro universitário etc.).
       - name: regiao
         description: Região do país.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["NORTE", "NORDESTE", "CENTRO-OESTE", "SUDESTE", "SUL"]
       - name: uf
         description: Sigla da UF.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
       - name: municipio
         description: Município do programa.
       - name: arquivo_origem
