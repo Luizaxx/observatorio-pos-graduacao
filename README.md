@@ -1,6 +1,6 @@
 # Observatório da Pós-Graduação Brasileira
 
-Pipeline de dados de ponta a ponta sobre os dados abertos da CAPES (Plataforma Sucupira): ingestão orquestrada com **Apache Airflow**, armazenamento em **PostgreSQL** com arquitetura medalhão (bronze → prata → ouro), transformação e testes de qualidade com **dbt** e, na próxima etapa, painel em **Streamlit**. Tudo sobe com Docker e usa apenas ferramentas open source.
+Pipeline de dados de ponta a ponta sobre os dados abertos da CAPES (Plataforma Sucupira): ingestão orquestrada com **Apache Airflow**, armazenamento em **PostgreSQL** com arquitetura medalhão (bronze → prata → ouro), transformação e testes de qualidade com **dbt** e painel interativo em **Streamlit**. Tudo sobe com Docker e usa apenas ferramentas open source.
 
 ## Arquitetura
 
@@ -23,10 +23,10 @@ Pipeline de dados de ponta a ponta sobre os dados abertos da CAPES (Plataforma S
                           bronze ─► prata ─► ouro
                                               │
                                               ▼
-                                    Streamlit (etapa 3)
+                                  Streamlit (painel, :8501)
 ```
 
-A DAG de ingestão roda semanalmente. Quando ela termina com sucesso, publica o Dataset da tabela bronze, e isso dispara a `transform_dbt`, que reconstrói a prata e a ouro e roda os testes.
+A DAG de ingestão roda semanalmente. Quando ela termina com sucesso, publica o Dataset da tabela bronze, e isso dispara a `transform_dbt`, que reconstrói a prata e a ouro e roda os testes. O painel lê só a camada ouro.
 
 ## Camadas
 
@@ -53,8 +53,17 @@ observatorio-pos-graduacao/
 │   ├── macros/                     # métricas compartilhadas e nome dos schemas
 │   ├── tests/                      # testes singulares
 │   └── profiles.yml                # conexão via variáveis de ambiente
+├── streamlit/
+│   ├── app.py                      # navegação entre as páginas
+│   ├── paginas/                    # visão geral, por UF, por área e busca
+│   ├── db.py                       # conexão e consultas em cache
+│   ├── indicadores.py              # agregação dos indicadores
+│   ├── graficos.py                 # estilo dos gráficos e formatação
+│   ├── dados/ufs.geojson           # malha das UFs (IBGE)
+│   └── Dockerfile
 ├── sql/init/                       # cria banco do Airflow e schemas bronze/prata/ouro
 ├── tests/                          # testes com pytest
+├── docs/img/                       # capturas de tela do painel
 ├── Dockerfile                      # Airflow + dbt
 ├── docker-compose.yml
 ├── .env.example
@@ -82,7 +91,37 @@ docker compose exec postgres psql -U obs -d observatorio \
   -c "SELECT ano_base, uf, total_programas, conceito_medio FROM ouro.fct_programas_por_uf_ano ORDER BY 1 DESC, 3 DESC LIMIT 5;"
 ```
 
+5. Depois que a `transform_dbt` terminar, abra o painel em http://localhost:8501.
+
 O Postgres fica exposto no host na porta **5434**, para não conflitar com outros bancos locais.
+
+| Serviço | Endereço |
+|---|---|
+| Painel (Streamlit) | http://localhost:8501 |
+| Airflow | http://localhost:8080 |
+| PostgreSQL | `localhost:5434` |
+
+## Painel
+
+O painel tem quatro páginas. Todas usam a coleta mais recente por padrão e os números seguem o padrão brasileiro (4.635 / 4,38).
+
+**Visão geral:** números do último ano-base com a variação em relação ao anterior (programas, conceito médio, % com doutorado e % com nota 6 ou 7), evolução do total de programas e distribuição por região.
+
+![Visão geral](docs/img/visao-geral.png)
+
+**Por UF:** mapa do Brasil colorido pelo indicador escolhido, ranking dos estados com o Brasil como referência, tabela com todos os indicadores e evolução de uma UF ao longo dos anos.
+
+![Indicadores por UF](docs/img/por-uf.png)
+
+**Por área:** comparação entre as grandes áreas do conhecimento, ranking das áreas de avaliação dentro da grande área escolhida e evolução de cada área.
+
+![Indicadores por área](docs/img/por-area.png)
+
+**Busca de programas:** busca por nome do programa ou da instituição (sem diferenciar acentos e maiúsculas), filtros por UF, grande área, modalidade e conceito, e exportação do resultado em CSV.
+
+![Busca de programas](docs/img/busca.png)
+
+O código do painel fica montado no container, então ele recarrega ao salvar um arquivo. Se uma mudança não aparecer, reinicie o serviço com `docker compose restart streamlit`.
 
 ## Transformação com dbt
 
@@ -139,11 +178,21 @@ pytest tests/
 - **Dataset em vez de horário fixo:** a `transform_dbt` roda logo depois de cada ingestão bem-sucedida, sem depender de acertar horários entre as DAGs.
 - **dbt num venv separado na imagem:** evita conflito de dependências com o Airflow.
 
+### Painel
+
+- **Só a camada ouro:** a regra de negócio fica no dbt e o painel só apresenta. A única conta feita no painel é reagregar os indicadores (em `indicadores.py`).
+- **Médias ponderadas:** ao juntar UFs ou áreas, o conceito médio é ponderado pelos programas avaliados. Isso dá o mesmo resultado que a média sobre todos os programas da prata.
+- **Referência só quando comparável:** o ranking e a evolução mostram o Brasil (ou a grande área) como referência para médias e percentuais, mas não para o total de programas, porque a soma do país não se compara com a de um estado.
+- **Malha das UFs versionada:** o GeoJSON do IBGE fica no repositório, então o painel não depende da API do IBGE para abrir. Os polígonos foram reorientados para a convenção que o Plotly espera.
+- **Busca em memória:** a `dim_programas` tem cerca de 4,8 mil linhas. Ela é lida uma vez, fica em cache por 10 minutos e é filtrada com pandas.
+- **Nomes da CAPES:** grandes áreas e áreas de avaliação vêm em caixa alta e são formatadas para leitura. Nomes de programas e instituições ficam como a CAPES publica, porque têm muitas siglas.
+- **CSV para o Excel em português:** a exportação usa `;` como separador e BOM UTF-8, para os acentos aparecerem certos.
+
 ## Roadmap
 
 - [x] Etapa 1 — Ingestão dos programas de pós-graduação na camada bronze
 - [x] Etapa 2 — Modelos dbt (prata e ouro) com testes de qualidade
-- [ ] Etapa 3 — Painel em Streamlit com indicadores por UF, área e ano
+- [x] Etapa 3 — Painel em Streamlit com indicadores por UF, área e ano
 - [ ] Etapa 4 — Novas fontes (discentes, teses e dissertações) e busca semântica com embeddings
 - [ ] Etapa 5 — CI com GitHub Actions e MinIO como data lake
 
