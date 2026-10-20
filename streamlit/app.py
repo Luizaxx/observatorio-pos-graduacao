@@ -8,6 +8,8 @@ st.set_page_config(
 
 paginas = [
     st.Page("paginas/visao_geral.py", title="Visão geral", default=True),
+    st.Page("paginas/por_uf.py", title="Por UF"),
+    st.Page("paginas/por_area.py", title="Por área"),
 ]
 
 st.navigation(paginas).run()
