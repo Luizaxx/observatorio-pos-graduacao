@@ -6,21 +6,11 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from db import consultar
-from graficos import AZUL, FONTE, estilo, numero
-
-CINZA = "#8a8a85"
+from graficos import AZUL, CINZA, FONTE, estilo, numero
+from indicadores import INDICADORES, agregar, com_percentuais
 
 # Rampa sequencial de um só tom: do claro (menor valor) ao escuro (maior)
 ESCALA = [[0, "#cde2fb"], [0.5, AZUL], [1, "#0d366b"]]
-
-# coluna -> (rótulo, casas decimais, sufixo)
-INDICADORES = {
-    "total_programas": ("Programas", 0, ""),
-    "conceito_medio": ("Conceito médio", 2, ""),
-    "pct_doutorado": ("% com doutorado", 1, "%"),
-    "pct_nota_6_7": ("% nota 6 ou 7", 1, "%"),
-    "pct_profissionais": ("% profissionais", 1, "%"),
-}
 
 
 @st.cache_data
@@ -29,22 +19,11 @@ def malha_ufs() -> dict:
     return json.loads(caminho.read_text())
 
 
-dados = consultar("select * from ouro.fct_programas_por_uf_ano order by ano_base, uf")
-dados["pct_doutorado"] = 100 * dados["programas_com_doutorado"] / dados["total_programas"]
-dados["pct_profissionais"] = 100 * dados["programas_profissionais"] / dados["total_programas"]
-
-# Referência nacional por ano, somando as UFs (mesma regra da visão geral)
-somas = dados.groupby("ano_base").sum(numeric_only=True)
-somas["peso_conceito"] = (
-    dados.assign(p=dados["conceito_medio"] * dados["programas_avaliados"])
-    .groupby("ano_base")["p"].sum()
+dados = com_percentuais(
+    consultar("select * from ouro.fct_programas_por_uf_ano order by ano_base, uf")
 )
-brasil = somas.assign(
-    conceito_medio=somas["peso_conceito"] / somas["programas_avaliados"],
-    pct_doutorado=100 * somas["programas_com_doutorado"] / somas["total_programas"],
-    pct_nota_6_7=100 * somas["programas_nota_6_7"] / somas["programas_avaliados"],
-    pct_profissionais=100 * somas["programas_profissionais"] / somas["total_programas"],
-)
+# Referência nacional por ano, somando as UFs
+brasil = agregar(dados, "ano_base")
 
 st.title("Indicadores por UF")
 st.caption("Compare os estados em um ano-base e acompanhe a evolução de cada um.")
