@@ -67,15 +67,36 @@ def criar_dag_ingestao(
             log.info("%d arquivos CSV encontrados: %s", len(csvs), [c["nome"] for c in csvs])
             return csvs
 
-        @task
+        # O servidor da CAPES derruba conexões longas e não aceita Range, então
+        # não dá para retomar: a task tenta de novo, com poucos downloads por vez.
+        @task(
+            retries=6,
+            retry_delay=pendulum.duration(minutes=1),
+            max_active_tis_per_dagrun=2,
+        )
         def baixar_csv(recurso: dict) -> str:
             pasta_raw.mkdir(parents=True, exist_ok=True)
             destino = pasta_raw / f"{normalizar_coluna(recurso['nome'])}.csv"
+            cabeca = requests.head(recurso["url"], allow_redirects=True, timeout=HTTP_TIMEOUT)
+            cabeca.raise_for_status()
+            tamanho = cabeca.headers.get("Content-Length")
+            tamanho = int(tamanho) if tamanho else None
+            if tamanho and destino.exists() and destino.stat().st_size == tamanho:
+                log.info("%s já está completo (%.1f MB); download pulado", destino.name, tamanho / 1e6)
+                return str(destino)
+
+            # baixa num arquivo temporário para nunca deixar um CSV pela metade no destino
+            parcial = destino.with_suffix(".csv.part")
             with requests.get(recurso["url"], stream=True, timeout=HTTP_TIMEOUT) as resp:
                 resp.raise_for_status()
-                with open(destino, "wb") as f:
+                with open(parcial, "wb") as f:
                     for bloco in resp.iter_content(chunk_size=1 << 20):
                         f.write(bloco)
+            if tamanho and parcial.stat().st_size != tamanho:
+                raise OSError(
+                    f"{destino.name}: baixados {parcial.stat().st_size} de {tamanho} bytes"
+                )
+            parcial.replace(destino)
             log.info("Baixado %s (%.1f MB)", destino.name, destino.stat().st_size / 1e6)
             return str(destino)
 
