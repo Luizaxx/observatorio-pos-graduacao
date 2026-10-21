@@ -6,6 +6,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dags"))
 
 from capes_utils import (  # noqa: E402
+    LeitorCopy,
+    abrir_csv,
     detectar_encoding,
     filtrar_csvs,
     ler_cabecalho,
@@ -62,9 +64,41 @@ def test_uniao_colunas_mantem_ordem_e_inclui_colunas_novas():
     assert uniao_colunas([["a", "b"], ["a", "c", "b"], ["d"]]) == ["a", "b", "c", "d"]
 
 
+def ler_tudo(leitor, tamanho):
+    partes = []
+    while bloco := leitor.read(tamanho):
+        partes.append(bloco)
+    return b"".join(partes)
+
+
+def test_leitor_copy_converte_para_utf8_e_pula_cabecalho(tmp_path):
+    arquivo = tmp_path / "latin.csv"
+    arquivo.write_bytes('AN_BASE;NM_PRODUCAO\n2024;"EDUCAÇÃO; ""SAÚDE""\nE MAIS"\n'.encode("latin-1"))
+    with abrir_csv(arquivo, "latin-1") as f:
+        # blocos de 5 bytes forçam leituras que cortam linhas e caracteres
+        saida = ler_tudo(LeitorCopy(f, 2, linhas_por_lote=1), 5)
+    assert saida.decode("utf-8") == '2024;"EDUCAÇÃO; ""SAÚDE""\nE MAIS"\n'
+
+
+def test_leitor_copy_completa_linha_truncada(tmp_path):
+    arquivo = tmp_path / "truncada.csv"
+    arquivo.write_bytes(b"A;B;C\n1;2;3\n4;5\n6;7;8\n")
+    with abrir_csv(arquivo, "utf-8") as f:
+        leitor = LeitorCopy(f, 3)
+        assert ler_tudo(leitor, 8192) == b"1;2;3\n4;5;\n6;7;8\n"
+    assert leitor.completadas == [3]
+
+
+def test_leitor_copy_recusa_campos_a_mais(tmp_path):
+    arquivo = tmp_path / "longa.csv"
+    arquivo.write_bytes(b"A;B\n1;2;3\n")
+    with abrir_csv(arquivo, "utf-8") as f, pytest.raises(ValueError, match="linha 2"):
+        ler_tudo(LeitorCopy(f, 2), 8192)
+
+
 def test_sql_copy():
-    sql = sql_copy("bronze.capes_teses", ["an_base", "nm_producao"], "latin-1")
+    sql = sql_copy("bronze.capes_teses", ["an_base", "nm_producao"])
     assert sql == (
         'COPY bronze.capes_teses ("an_base", "nm_producao") FROM STDIN '
-        "WITH (FORMAT csv, DELIMITER ';', HEADER true, ENCODING 'LATIN1')"
+        "WITH (FORMAT csv, DELIMITER ';', ENCODING 'UTF8')"
     )

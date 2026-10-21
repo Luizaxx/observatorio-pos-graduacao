@@ -6,7 +6,8 @@ Fluxo de ingestão comum aos conjuntos de dados da CAPES (Plataforma Sucupira).
 - Os arquivos são descobertos via API CKAN do portal de dados abertos da CAPES,
   então novos anos publicados entram no pipeline sem mudar código.
 - A carga usa COPY arquivo por arquivo, sem passar pelo pandas: os CSVs de teses
-  passam de 400 MB por ano e não caberiam na memória do container.
+  passam de 400 MB por ano e não caberiam na memória do container. O CSV passa
+  por um leitor em streaming que converte para utf-8 e completa linhas truncadas.
 - A bronze guarda os dados brutos (todas as colunas como texto) + metadados de carga.
   A tabela é recriada numa única transação: se um arquivo falhar, a versão anterior fica.
 - Ao final, validar_bronze atualiza o Dataset da tabela, o que dispara a transform_dbt.
@@ -24,7 +25,15 @@ import requests
 from airflow.datasets import Dataset
 from airflow.decorators import dag, task
 
-from capes_utils import filtrar_csvs, ler_cabecalho, normalizar_coluna, sql_copy, uniao_colunas
+from capes_utils import (
+    LeitorCopy,
+    abrir_csv,
+    filtrar_csvs,
+    ler_cabecalho,
+    normalizar_coluna,
+    sql_copy,
+    uniao_colunas,
+)
 
 log = logging.getLogger(__name__)
 
@@ -127,9 +136,15 @@ def criar_dag_ingestao(
                             f"ALTER TABLE {tabela_bronze} ALTER COLUMN _arquivo_origem SET DEFAULT %s",
                             (arquivo.name,),
                         )
-                        with open(arquivo, "rb") as f:
-                            cur.copy_expert(sql_copy(tabela_bronze, cols, encoding), f)
+                        with abrir_csv(arquivo, encoding) as f:
+                            leitor = LeitorCopy(f, len(cols))
+                            cur.copy_expert(sql_copy(tabela_bronze, cols), leitor, size=1 << 16)
                         log.info("%s: %d linhas (%s)", arquivo.name, cur.rowcount, encoding)
+                        if leitor.completadas:
+                            log.warning(
+                                "%s: %d linhas com campos faltando, completadas com nulos: %s",
+                                arquivo.name, len(leitor.completadas), leitor.completadas[:20],
+                            )
                         total += cur.rowcount
                     cur.execute(
                         f"ALTER TABLE {tabela_bronze} ALTER COLUMN _arquivo_origem DROP DEFAULT"
