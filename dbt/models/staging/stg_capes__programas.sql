@@ -40,7 +40,8 @@ final as (
         -- formato "mestrado/doutorado", mas a ordem não é confiável em todos os anos
         an_inicio_curso                                        as anos_inicio_cursos,
         in_rede = 'SIM'                                        as em_rede,
-        nullif(trim(sg_entidade_ensino_rede), '')              as sigla_ies_rede,
+        -- "NA" (não se aplica) vem para os programas que não são em rede
+        nullif(nullif(trim(sg_entidade_ensino_rede), ''), 'NA') as sigla_ies_rede,
 
         -- área do conhecimento
         nm_grande_area_conhecimento                            as grande_area,
